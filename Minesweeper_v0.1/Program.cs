@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.ComponentModel.Design;
+using System.Text;
 
 namespace Minesweeper_v0._1
 {
@@ -7,11 +8,11 @@ namespace Minesweeper_v0._1
         static ushort hight = 0;
         static ushort length = 0;
         static ushort mines = 0;
-        static ushort guessHight = 0;
-        static ushort guessLength = 0;
         static short[,] guessArr;
         static short[,] multiIntArr;
         static bool innerTest = false;
+        static int zerocheck = 0;
+        static bool lost = false;
 
         static void Main(string[] args)
         {
@@ -98,7 +99,7 @@ namespace Minesweeper_v0._1
         // Creates and prints the Playfield with the given values
         static void FieldCreation()
         {
-            /// Creates and prints the Playfield with the hight and lenght values and sets the Mines with the mine Value randomly;
+            /// Creates the Playfield with the hight and lenght values and sets the Mines with the mine Value randomly;
             Console.Clear();
             Header();
 
@@ -123,7 +124,35 @@ namespace Minesweeper_v0._1
                 short randomHight = (short)rnd.Next(0, hight);
                 short randomLenght = (short)rnd.Next(0, length);
                 if (multiIntArr[randomHight, randomLenght] != 9)
+                {
                     multiIntArr[randomHight, randomLenght] = 9;
+
+                    if (randomLenght > 0 && multiIntArr[randomHight, randomLenght - 1] != 9)
+                        multiIntArr[randomHight, randomLenght - 1]++;
+
+                    if (randomLenght < length - 1 && multiIntArr[randomHight, randomLenght + 1] != 9)
+                        multiIntArr[randomHight, randomLenght + 1]++;
+
+                    if (randomHight > 0 && multiIntArr[randomHight - 1, randomLenght] != 9)
+                        multiIntArr[randomHight - 1, randomLenght]++;
+
+                    if (randomHight > 0 && randomLenght > 0 && multiIntArr[randomHight - 1, randomLenght - 1] != 9)
+                        multiIntArr[randomHight - 1, randomLenght - 1]++;
+
+                    if (randomHight > 0 && randomLenght < length - 1 && multiIntArr[randomHight - 1, randomLenght + 1] != 9)
+                        multiIntArr[randomHight - 1, randomLenght + 1]++;
+
+                    if (randomHight < hight - 1 && multiIntArr[randomHight + 1, randomLenght] != 9)
+                        multiIntArr[randomHight + 1, randomLenght]++;
+
+                    if (randomLenght > 0 && randomHight < hight - 1 && multiIntArr[randomHight + 1, randomLenght - 1] != 9)
+                        multiIntArr[randomHight + 1, randomLenght - 1]++;
+
+                    if (randomHight < hight - 1 && randomLenght < length - 1 && multiIntArr[randomHight + 1, randomLenght + 1] != 9)
+                        multiIntArr[randomHight + 1, randomLenght + 1]++;
+
+                }
+                    
             }
             PlayField();
         }
@@ -138,22 +167,50 @@ namespace Minesweeper_v0._1
                 
                 if (innerTest)
                 {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
                     Console.Write(outer + 1 + " ");
+                    Console.ResetColor();
                 }
                 else Console.Write("  ");
 
                 for (short inner = -1; inner < multiIntArr.GetLength(1); inner++)
                 {
-                    if (inner == -1 && outer == -1);
+                    if (inner == -1 && outer == -1) ;
                     else if (outer == -1 && inner != -1)
                     {
+                        Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.Write(inner + 1 + " ");
+                        Console.ResetColor();
                         innerTest = true;
                     }
-                    else if (inner == -1);
+                    else if (inner == -1) ;
                     else if (guessArr[outer, inner] == 0) Console.Write("\u25A0 ");
-                    else if (multiIntArr[outer, inner] == 9) Console.Write("▣ ");
-                    else if (guessArr[outer, inner] == 1) Console.Write("□ ");
+                    else if (multiIntArr[outer, inner] == 9)
+                    {
+                        Console.Write("\u8855 ");
+                        lost = true;
+                    }
+                    else if (guessArr[outer, inner] == 1)
+                    {
+                        if (multiIntArr[outer, inner] != 0)
+                        {
+                            switch (multiIntArr[outer, inner])
+                            {
+                                case 1: Console.ForegroundColor = ConsoleColor.DarkCyan; break;
+                                case 2: Console.ForegroundColor = ConsoleColor.Green; break;
+                                case 3: Console.ForegroundColor = ConsoleColor.Red; break;
+                                case 4: Console.ForegroundColor = ConsoleColor.DarkBlue; break;
+                                case 5: Console.ForegroundColor = ConsoleColor.DarkRed; break;
+                                case 6: Console.ForegroundColor = ConsoleColor.Magenta; break;
+                                case 7: Console.ForegroundColor = ConsoleColor.DarkYellow; break;
+                                case 8: Console.ForegroundColor = ConsoleColor.Gray; break;
+                            }
+                            Console.Write($"{multiIntArr[outer, inner]} ");
+                            Console.ResetColor();
+                        }
+                        else
+                            Console.Write("\u25A1 ");
+                    }
                     else
                     {
                         Console.WriteLine("something went wront! Sorry recreating the field...");
@@ -161,17 +218,36 @@ namespace Minesweeper_v0._1
                         PlayField();
                     }
 
-                }
+                    }
                 Console.WriteLine("");
                 Console.WriteLine("");
+
             }
-            Guess();
+            if (lost == true)
+                Console.WriteLine("You lost!");
+            else
+            {
+                int fieldsLeft = 0;
+                for (short outer = 0; outer < multiIntArr.GetLength(0); outer++)
+                {
+                    for (short inner = 0; inner < multiIntArr.GetLength(1); inner++)
+                    {
+                        if (guessArr[outer, inner] == 0)
+                            fieldsLeft++;
+                    }
+
+                }
+                if (fieldsLeft == mines)
+                    Console.WriteLine("You Win!");
+                Guess();
+            }
         }
 
         static void Guess()
         {
-            guessHight = 0;
-            guessLength = 0;
+            /// manages the Guess input
+            ushort guessHight = 0;
+            ushort guessLength = 0;
 
 
             Console.WriteLine("please enter your guess in the field in the following Format: [Number]x[Number]");
@@ -202,9 +278,38 @@ namespace Minesweeper_v0._1
                 Guess();
             }
             Thread.Sleep(1000);
-            guessArr[guessHight-1, guessLength-1] = 1;
+            Reveal(guessHight, guessLength);
 
             PlayField();
+        }
+
+
+        static void Zeros(int tempHight, int tempLength)
+        {
+            Reveal(tempHight + 1, tempLength);
+            Reveal(tempHight - 1, tempLength);
+            Reveal(tempHight, tempLength + 1);
+            Reveal(tempHight, tempLength - 1);
+            Reveal(tempHight + 1, tempLength - 1);
+            Reveal(tempHight - 1, tempLength + 1);
+            Reveal(tempHight + 1, tempLength + 1);
+            Reveal(tempHight - 1, tempLength - 1);
+
+        }
+
+        static void Reveal(int tempHight, int tempLength)
+        {
+            if (tempHight <= 0 || tempLength <= 0 || tempHight > hight || tempLength > length || guessArr[tempHight - 1, tempLength - 1] == 1)
+                return;
+            guessArr[tempHight - 1, tempLength - 1] = 1;
+            if (multiIntArr[tempHight - 1, tempLength - 1] != 0)
+                return;
+            else
+            {
+                Zeros(tempHight, tempLength);
+                return;
+            }
+
         }
 
     }
